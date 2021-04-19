@@ -6,7 +6,7 @@ on:
     tags-ignore:
       - '*'
   pull_request:
-linux:
+jobs:
   ubuntu:
     runs-on: ${{ matrix.os }}
     strategy:
