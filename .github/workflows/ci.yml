@@ -7,45 +7,7 @@ on:
       - '*'
   pull_request:
 jobs:
-  ubuntu:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        perl-version: ['5.14', '5.20', '5.28', '5.32']
-        include:
-          - perl-version: '5.30'
-            os: ubuntu-latest
-            release-test: true
-            coverage: true
-    container: perl:${{ matrix.perl-version }}
-    steps:
-      - uses: actions/checkout@v2
-      - run: apt-get -y update && apt-get -y upgrade
-      - run: apt-get -y install build-essential libgomp1
-      - run: cpanm Devel::CheckLib ExtUtils::MakeMaker
-      - name: make module available for testing
-        run: cpanm -n --with-recommends --installdeps .
-      - run: perl -V
-      - name: Run release tests # before others as may install useful stuff
-        if: ${{ matrix.release-test }}
-        env:
-          RELEASE_TESTING: 1
-        run: |
-          cpanm -n --installdeps --with-develop .
-          prove -lr xt
-      - name: Run tests (no coverage)
-        if: ${{ !matrix.coverage }}
-        run: prove -l -j4 t
-      - name: Run tests (with coverage)
-        if: ${{ matrix.coverage }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cpanm -n Devel::Cover::Report::Coveralls
-          HARNESS_OPTIONS='j4' cover -test -report Coveralls
-macos:
+macos-latest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -60,7 +22,7 @@ macos:
       - run: perl -V
       - name: Run tests
         run: prove -l t xt
-windows:
+windows-latest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
