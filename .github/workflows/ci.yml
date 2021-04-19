@@ -59,9 +59,9 @@ jobs:
       - uses: perl-actions/install-with-cpanm@v1
         with:
           args: Devel::CheckLib ExtUtils::MakeMaker
-#      - uses: perl-actions/install-with-cpanm@v1
-#        with:
-#          args: -n --with-recommends --installdeps .
+      - uses: perl-actions/install-with-cpanm@v1
+        with:
+          args: -n --with-recommends --installdeps .
 #      - name: Run tests
 #        run: prove -lr t
 
