@@ -57,8 +57,8 @@ jobs:
         with:
           distribution: strawberry # ignored non-windows
       - uses: perl-actions/install-with-cpanm@v1
-        with: Devel::CheckLib ExtUtils::MakeMaker
-          args: 
+        with:
+          args: Devel::CheckLib ExtUtils::MakeMaker
       - uses: perl-actions/install-with-cpanm@v1
         with:
           args: -n --installdeps .
