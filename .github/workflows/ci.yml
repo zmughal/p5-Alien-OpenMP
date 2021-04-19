@@ -6,7 +6,7 @@ on:
     tags-ignore:
       - '*'
   pull_request:
-jobs:
+linux:
   ubuntu:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -45,7 +45,7 @@ jobs:
         run: |
           cpanm -n Devel::Cover::Report::Coveralls
           HARNESS_OPTIONS='j4' cover -test -report Coveralls
-  non-linux:
+  windows:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
