@@ -4,33 +4,67 @@ use strict;
 use warnings;
 use Config ();
 
-our $VERSION = '1.0';
+our $VERSION = '0.001';
 
-# __PACKAGE__ hash ref containing table of flag used
-# by each specified 'ccname'
+# set as package variable since %Config::Config is read only, (per docs and in practice)
+our $CCNAME = $Config::Config{ccname};
+
+# per-compiler meta data, each supported compiler will require an entry
 
 our $omp_flags = {
+    # used by ccflags, lddlflags
     gcc => '-fopenmp',
 };
 
+our $omp_check_libs = {
+    # used by _check_libs, intended for use by Devel::CheckLib
+    gcc => [qw/gomp/],
+};
+
+our $omp_check_headers = {
+    # used by _check_headers, intended for use by Devel::CheckLib
+    gcc => [qw/omp.h/],
+};
+
+# "public" Alien::Base method implementations
+
 sub cflags {
-    my $cn = $Config::Config{ccname};
-
-    # OpenMP pragmas live behind source code comments
-    if ( not defined $omp_flags->{$cn} ) {
-      require ExtUtils::MakeMaker;
-      ExtUtils::MakeMaker::os_unsupported();
-    }
-
+    my $cn = $CCNAME;
+    _assert_os($omp_flags, $cn);
     return $omp_flags->{$cn};
 }
 
+# we can reuse cflags for gcc/gomp; hopefully this will
+# remain the case for all supported compilers
+
 sub lddlflags {
+    my $cn = $CCNAME;
+    _assert_os($omp_flags, $cn);
+    return $omp_flags->{$cn};
+}
 
-    # we can reuse cflags for gcc/gomp; hopefully this will
-    # remain the case for all supported compilers
+# "private" internal helper subs
 
-    return cflags;
+sub _assert_os {
+    my ($omp, $cn) = @_;
+    # OpenMP pragmas live behind source code comments
+    if ( not defined $omp->{$cn} ) {
+      # dies the same way as ExtUtils::MakeMaker::os_unsupported()
+      die qq{OS unsupported\n};
+    }
+    return;
+}
+
+sub _check_libs {
+    my $cn = $CCNAME;
+    _assert_os($omp_check_libs, $cn);
+    return $omp_check_libs->{$cn};
+}
+
+sub _check_headers {
+    my $cn = $CCNAME;
+    _assert_os($omp_check_headers, $cn);
+    return $omp_check_headers->{$cn};
 }
 
 1;
@@ -93,9 +127,18 @@ build C<perl>. Since the vast majority of C<perl>s are building using C<gcc>,
 initial support is targeting it. However, like C<perl>, many other compilers
 may be used.
 
-Adding support for a new compiler should be straightforward; while C<pull
-requests are welcome>, you may request updated support through the prescribed
-bug tracker.
+Adding support for a new compiler should be straightforward; please section on
+contributing, below.
+
+=head2 Contributing
+
+The biggest need is to support additional compilers. OpenMP is a well established
+standard across compilers, but there is guarantee that all compilers will use the
+same flags, library names, or header files. It should also be easy to contribute
+a patch to add this information, which is effectively its purpose. At the very least,
+please create an issue at the official issue tracker to request this support, and
+be sure to include the relevant information. Chances are the maintainers of this
+module do not have access to an unsupported compiler.
 
 =head1 METHODS
 
@@ -115,6 +158,22 @@ Returns the flag used by the linker to enable OpenMP. This is usually the same
 as what is returned by C<cflags>.
 
 Example, GCC uses, C<-fopenmp>, for this as well.
+
+=item C<_check_libs>
+
+Internal method.
+
+Returns an array reference of libraries, e.g., C<gomp> for C<gcc>. It is meant
+specifically as an internal method to support L<Devel::CheckLib> in this module's
+C<Makefile.PL>.
+
+=item C<_check_headers>
+
+Internal method.
+
+Returns an array reference of header files, e.g., C<omp.h> for C<gcc>. It is meant
+specifically as an internal method to support L<Devel::CheckLib> in this module's
+C<Makefile.PL>.
 
 =back
 

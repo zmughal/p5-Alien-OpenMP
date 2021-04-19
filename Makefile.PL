@@ -2,20 +2,14 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 use Devel::CheckLib;
+use FindBin qw/$Bin/;
+use lib q{lib};
 use Config ();
 
-# depending on the compiler name as defined in %Config::Config,
-# check for the library, head, and flags needed to use OpenMP
-if ( q{gcc} eq $Config::Config{ccname} ) {
-    local $/ = undef;          # slurp mode for main() body in __DATA__
-    check_lib_or_exit(
-        lib     => q{gomp},
-        header  => q{omp.h},
-        ccflags => q{-fopenmp},
-        ldflags => q{-fopenmp},
-        function => <DATA>,    # main() body defined in __DATA__
-    );
-}
+# all supported compilers must be registered in @SUPPORTED_CCNAMES
+my @SUPPORTED_CCNAMES = (qw/gcc/);
+
+_assert_supported_environment( $Config::Config{ccname} );
 
 my $repo = 'oodler577/p5-Alien-OpenMP';
 ( my $file = ( my $pkg = 'Alien::OpenMP' ) ) =~ s#::#/#g;
@@ -26,18 +20,18 @@ WriteMakefile(
     ABSTRACT_FROM      => $file,
     AUTHOR             => q{OODLER 577 <oodler@cpan.org>},
     LICENSE            => 'artistic_2',
-    MIN_PERL_VERSION   => '5.010001',
+    MIN_PERL_VERSION   => '5.008009',
     CONFIGURE_REQUIRES => {
-        'ExtUtils::MakeMaker' => '7.10',
+        'ExtUtils::MakeMaker' => 0,
         'Devel::CheckLib'     => 0,
     },
     TEST_REQUIRES => {
-      'Test::More'          => 0,
+        'Test::More' => 0,
     },
-    PREREQ_PM     => {
-      'Devel::CheckLib' => 0,
+    PREREQ_PM => {
+        'Devel::CheckLib' => 0,
     },
-    META_MERGE    => {
+    META_MERGE => {
         "meta-spec"    => { version => 2 },
         dynamic_config => 0,
         resources      => {
@@ -77,6 +71,32 @@ pure_all :: README.md
 README.md : \$(VERSION_FROM)
 \tpod2markdown \$< >\$\@
 EOF
+}
+
+# OpenMP specific assertion that leverages Devel::CheckLib and
+# information that should be provided for the compiler being test
+# but the Alien::OpenMP module itself
+sub _assert_supported_environment {
+    my $ccname = shift;
+
+    # fail out the boat for macos since clang masks as gcc and needs
+    # to be handled as a new compiler type integration
+    die qq{OS unsupported\n} if $^O eq q{darwin};
+
+    if ( grep { $_ =~ /$Config::Config{ccname}/ } @SUPPORTED_CCNAMES ) {
+        require Alien::OpenMP;
+        my $ao = bless {}, q{Alien::OpenMP};
+        local $/ = undef;    # slurp mode for main() body in __DATA__
+        check_lib_or_exit(
+            lib      => $ao->_check_libs,
+            header   => $ao->_check_headers,
+            ccflags  => $ao->cflags,
+            ldflags  => $ao->lddlflags,
+            function => <DATA>,
+        );
+        return;
+    }
+    die qq{OS unsupported\n};
 }
 
 __DATA__

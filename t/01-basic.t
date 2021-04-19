@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 7;
+use Test::More;
 use FindBin qw/$Bin/;
 use lib qq{$Bin/../lib};
 
@@ -25,30 +25,46 @@ can_ok( $snoo, qw/cflags lddlflags/ );
 GCC:
 {
     my $omp_flag = q{-fopenmp};
-    local %Config::Config = ( ccname => q{gcc}, );
+    local $Alien::OpenMP::CCNAME = q{gcc};
     is $snoo->cflags,    $omp_flag, q{Found expected OpenMP compiler switch for gcc.};
     is $snoo->lddlflags, $omp_flag, q{Found expected OpenMP linker switch for gcc.};
     is $snoo->lddlflags, $snoo->cflags, q{cflags and lddlflags are the same.};
+    is_deeply $snoo->_check_libs, [qw/gomp/], q{_check_libs returns as expected};
+    is_deeply $snoo->_check_headers, [qw/omp.h/], q{_check_headers returns as expected};
 }
 
 UNSUPPORTED:
 {
-    local %Config::Config = ( ccname => q{unsupported xyz}, );
+    local $Alien::OpenMP::CCNAME = q{unsupported xyz};
     local $@;
     # force exception for cflags
     my $ok = eval {
       $snoo->cflags;
     };
     chomp $@;
-    is $@, q{OS unsupported}, q{clfags - OS Unsupported thrown when exected};
+    is $@, q{OS unsupported}, q{clfags - OS Unsupported thrown when expected};
     # reset and force exception for lddlflags
     $@ = undef;
     $ok = eval {
       $snoo->lddlflags;
     };
     chomp $@;
-    is $@, q{OS unsupported}, q{lddlflags - OS Unsupported thrown when exected};
+    is $@, q{OS unsupported}, q{lddlflags - OS Unsupported thrown when expected};
+    $@ = undef;
+    $ok = eval {
+      $snoo->_check_libs;
+    };
+    chomp $@;
+    is $@, q{OS unsupported}, q{_check_libs - OS Unsupported thrown when expected};
+    $@ = undef;
+    $ok = eval {
+      $snoo->_check_headers;
+    };
+    chomp $@;
+    is $@, q{OS unsupported}, q{_check_headers- OS Unsupported thrown when expected};
 }
+
+done_testing;
 
 exit;
 
